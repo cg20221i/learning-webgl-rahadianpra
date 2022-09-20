@@ -1,80 +1,92 @@
 function main() {
-    var canvas = document.getElementById("myCanvas");
-    var gl = canvas.getContext("experimental-webgl");
-  
+  var canvas = document.getElementById("myCanvas");
+  var gl = canvas.getContext("webgl");
 
-  /**
-   * A ( 0.5, 0.5)
-   * B ( 0.0, 0.0)
-   * C ( -0.5, 0.5)
-   * D ( 0.0, 1.0)
-   */
-
+  //A(0.5, 0.5) B(0.0, 0.0) C(-0.5, 0.5) D(0.0, 1.0)
   var vertices = [
-      -0.6, 0.9, 
-      -0.9, 0.6, 
-      -0.6, 0.6,
-      -0.6, 0.2
+      0.5, 0.5, 1.0, 0.0, 1.0,
+      0.0, 0.0, 1.0, 1.0, 1.0,
+      -0.5, 0.5, 1.0, 0.0, 1.0,
+      0.0, 1.0, 0.0, 0.0, 0.0
   ];
 
-  //created a linked-list for storing the vertices data in the GPU realm
+  // Create a linked-list for storing vertices data to GPU realm
   var buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);       //to allocate 
 
-//vertex shader
-    var vertexShaderCode = `
-    attribute vec2 aPosition;
-    void main () {
-      gl_PointSize = 10.0;
-      gl_Position = vec4(aPosition, 0.0, 1.0);
-      //gl Position -> final destination for storing 
-      // positional data for renderen vertex
 
-    }
+  // VERTEX SHADER
+  var vertexShaderCode = `
+      attribute vec2 aPosition;
+      attribute vec3 aColor;
+      uniform float uTheta;
+      varying vec3 vColor;
+      void main () {
+          gl_PointSize = 15.0;
+          vec2 position = vec2(aPosition);
+          position.x = -sin(uTheta) *aPosition.x + cos(uTheta) *aPosition.y;
+          position.y = sin(uTheta) *aPosition.y + cos(uTheta) *aPosition.x;
+          gl_Position = vec4(position, 0.0, 1.0);     // gl_Position is the final destination for storing
+          //  positional data for the rendered vertex
+          vColor = aColor;
+      }
   `;
-    //vertex shader
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderCode);
-    gl.compileShader(vertexShader);
-  
-    //fragment shader
-    var fragmentShaderCode = `
+  var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vertexShader, vertexShaderCode);
+  gl.compileShader(vertexShader);
+
+  // FRAGMENT SHADER
+  var fragmentShaderCode = `
       precision mediump float;
-          void main () {
-            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-            //Blue = R:0, G:0, B:1, A:1
-          }
-    `;
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderCode);
-    gl.compileShader(fragmentShader);
-  
-  
-    var shaderProgram = gl.createProgram();
-    gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
-    gl.useProgram(shaderProgram);
-  
-          //Teach the GPU how to collect 
-          //The positional values from ARRAY_BUFFER
-          //for each vertex being processed
-        var aPosition = gl.getAttribLocation(shaderProgram, "aPosition");
-        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(aPosition);  
+      varying vec3 vColor;
+      void main() {
+          gl_FragColor = vec4(vColor, 1.0);
+          // Blue = R:0, G:0, B:1, A:1
+          // gl_FragColor is the final destination for storing
+          //  color data for the rendered fragment
+      }
+  `;
+  var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fragmentShader, fragmentShaderCode);
+  gl.compileShader(fragmentShader);
 
+  // Comparing to C-Programming, we may imagine
+  //  that up to this step we have created two
+  //  object files (.o), for the vertex and fragment shaders
 
-    gl.clearColor(1.0, 0.75, 0.79, 1.0);
+  var shaderProgram = gl.createProgram();
+  gl.attachShader(shaderProgram, vertexShader);
+  gl.attachShader(shaderProgram, fragmentShader);
+  gl.linkProgram(shaderProgram);
+  gl.useProgram(shaderProgram);
+
+  //Local variables
+  var theta = 0.0;
+
+  //All the qualifiers needed by shaders
+  var uTheta = gl.getUniformLocation(shaderProgram, "uTheta");
+
+  //Teach GPU how to collect the positional values from ARRAY_BUFFER for each vertex being processed
+  var aPosition = gl.getAttribLocation(shaderProgram, "aPosition");
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 5 * Float32Array.BYTES_PER_ELEMENT, 0);
+  gl.enableVertexAttribArray(aPosition);
   
-    gl.clear(gl.COLOR_BUFFER_BIT);
- 
-    gl.drawArrays(gl.LINE_LOOP, 0, 4);
-        //POINT
-        //LINES
-        //LINE_LOOP
-        //LINE_STRIP
-        //TRIANGLES
-        //TRIANGLES_STRIP
-        //TRIANGLE_FAN
-        }      
+  var aColor = gl.getAttribLocation(shaderProgram, "aColor");
+
+  gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 5 * Float32Array.BYTES_PER_ELEMENT, 2 * Float32Array.BYTES_PER_ELEMENT);
+  gl.enableVertexAttribArray(aColor);
+
+  function render(){
+          gl.clearColor(1.0, 0.75,   0.79,  1.0);
+              //Red, Green, Blue, Alpha
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          
+          theta += 0.01;
+          gl.uniform1f(uTheta, theta);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+          requestAnimationFrame(render);
+      
+  }
+  requestAnimationFrame(render);
+}
