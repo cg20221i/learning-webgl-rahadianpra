@@ -11,10 +11,10 @@ function main() {
    */
 
   var vertices = [
-      0.5, 0.5, 
-      0.0, 0.0, 
-      -0.5, 0.5, 
-      0.0, 1.0
+      -0.6, 0.9, 
+      -0.9, 0.6, 
+      -0.6, 0.6,
+      -0.6, 0.2
   ];
 
   //created a linked-list for storing the vertices data in the GPU realm
@@ -26,7 +26,7 @@ function main() {
     var vertexShaderCode = `
     attribute vec2 aPosition;
     void main () {
-      gl_PointSize = 50.0;
+      gl_PointSize = 10.0;
       gl_Position = vec4(aPosition, 0.0, 1.0);
       //gl Position -> final destination for storing 
       // positional data for renderen vertex
@@ -69,7 +69,7 @@ function main() {
   
     gl.clear(gl.COLOR_BUFFER_BIT);
  
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+    gl.drawArrays(gl.LINE_LOOP, 0, 4);
         //POINT
         //LINES
         //LINE_LOOP
